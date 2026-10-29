@@ -1,0 +1,118 @@
+name: release
+
+# 推 v* tag 时在 GitHub Actions 上跑测试、打插件 zip 并创建 Release。
+# 为什么在 CI 里打包：发布物必须可复现、可审计；本地打包含“谁机器上的 Python/文件”的不确定性。
+# 发布产物：
+#   astrbot_plugin_model_websearch-v<version>.zip          可直接在 AstrBot WebUI 上传安装
+#   astrbot_plugin_model_websearch-v<version>.zip.sha256.txt  zip 的 SHA-256
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码（需要完整 tag 历史来推算上一个版本）
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 跑测试（发布前必须全绿）
+        run: python scripts/run-offline-tests.py
+
+      - name: 校验 tag 与 metadata.yaml 版本一致
+        run: |
+          set -euo pipefail
+          version=$(python - <<'PY'
+          import pathlib
+          import re
+
+          text = pathlib.Path("metadata.yaml").read_text(encoding="utf-8")
+          match = re.search(r"^version:\s*\"?v?([0-9]+\.[0-9]+\.[0-9]+)\"?\s*$", text, re.MULTILINE)
+          if not match:
+              raise SystemExit("metadata.yaml 里找不到 version: vX.Y.Z")
+          print(match.group(1))
+          PY
+          )
+          tag="${GITHUB_REF_NAME}"
+          if [ "v${version}" != "${tag}" ]; then
+            echo "::error::tag ${tag} 与 metadata.yaml version v${version} 不一致：请先改 metadata.yaml 再打 tag。"
+            exit 1
+          fi
+          echo "版本 v${version} 与 tag ${tag} 一致。"
+
+      - name: 构建插件 zip
+        run: python scripts/build-plugin-zip.py --out dist
+
+      - name: 生成发布说明与校验信息
+        run: |
+          set -euo pipefail
+          version=$(python - <<'PY'
+          import pathlib
+          import re
+
+          text = pathlib.Path("metadata.yaml").read_text(encoding="utf-8")
+          print(re.search(r"^version:\s*\"?v?([0-9]+\.[0-9]+\.[0-9]+)\"?\s*$", text, re.M).group(1))
+          PY
+          )
+          tag="v${version}"
+          previous=$(git tag --sort=-v:refname | grep -v -x "${tag}" | head -n 1 || true)
+          if [ -n "${previous}" ]; then
+            echo "上一个版本 tag：${previous}"
+            python scripts/release-notes.py --version "${version}" --since "${previous#v}" --out RELEASE_NOTES.md
+          else
+            echo "没有更早的 tag，发布说明覆盖到当前版本为止。"
+            python scripts/release-notes.py --version "${version}" --out RELEASE_NOTES.md
+          fi
+          zip_path="dist/astrbot_plugin_model_websearch-${tag}.zip"
+          test -f "${zip_path}" || { echo "::error::构建产物不存在：${zip_path}"; exit 1; }
+          sha=$(awk '{print $1}' "${zip_path}.sha256.txt")
+          {
+            echo ""
+            echo "### 校验"
+            echo ""
+            echo "- 插件包 SHA-256：\`${sha}\`"
+            echo "- 安装：AstrBot WebUI → 插件管理 → 从文件安装，上传上面的 zip。"
+          } >> RELEASE_NOTES.md
+          echo "sha256=${sha}" >> "$GITHUB_ENV"
+
+      - name: 发布 Release（已存在则覆盖上传资产）
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version=$(python - <<'PY'
+          import pathlib
+          import re
+
+          text = pathlib.Path("metadata.yaml").read_text(encoding="utf-8")
+          print(re.search(r"^version:\s*\"?v?([0-9]+\.[0-9]+\.[0-9]+)\"?\s*$", text, re.M).group(1))
+          PY
+          )
+          tag="v${version}"
+          zip_path="dist/astrbot_plugin_model_websearch-${tag}.zip"
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            echo "Release ${tag} 已存在，覆盖上传资产。"
+            gh release upload "${tag}" "${zip_path}" "${zip_path}.sha256.txt" --clobber
+          else
+            gh release create "${tag}" --verify-tag --title "${tag}" \
+              --notes-file RELEASE_NOTES.md \
+              "${zip_path}" "${zip_path}.sha256.txt"
+          fi
+          echo "发布完成：${tag}"

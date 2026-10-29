@@ -1,0 +1,111 @@
+{
+  "disable_web_search": {
+    "type": "bool",
+    "description": "禁用网页搜索（本插件级）",
+    "hint": "开启后本插件不向模型注入搜索工具，/msearch 也不可用；优先级高于 AstrBot 本体的网页搜索开关。",
+    "default": false
+  },
+  "provider_mode": {
+    "type": "string",
+    "description": "搜索模型来源",
+    "options": [
+      "current",
+      "fixed"
+    ],
+    "default": "current",
+    "hint": "current=跟随当前会话的聊天模型；fixed=固定使用下方 provider_id。注意：fixed 模式下 provider_id 留空会明确报错，不会自动回落当前会话模型。"
+  },
+  "provider_id": {
+    "type": "string",
+    "description": "固定搜索模型 Provider ID",
+    "hint": "仅 provider_mode=fixed 时生效，例如 <provider>/<model>。留空在 fixed 模式下会报错；current 模式下本项被忽略。",
+    "default": ""
+  },
+  "max_results": {
+    "type": "int",
+    "description": "返回结果条数",
+    "hint": "1 到 10，默认 10。一次搜索内部还会展开多个子查询，结果通常已经够用。",
+    "default": 10
+  },
+  "search_context_size": {
+    "type": "string",
+    "description": "原生搜索上下文规模",
+    "options": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "default": "low",
+    "hint": "low 更省 token/更快，high 检索更充分但更贵。"
+  },
+  "include_answer": {
+    "type": "bool",
+    "description": "让搜索后端额外生成 answer",
+    "hint": "默认关闭：只返回 results，最终回答由主模型写（更快更省）。开启后搜索调用会多生成一段简短总结。",
+    "default": false
+  },
+  "max_output_tokens": {
+    "type": "int",
+    "description": "搜索调用最大输出 token",
+    "hint": "默认 400；只返回 results 时足够。若开启 include_answer 或结果很多导致 JSON 被截断，可调高。",
+    "default": 400
+  },
+  "timeout_seconds": {
+    "type": "int",
+    "description": "单次搜索超时（秒）",
+    "default": 45
+  },
+  "cache_ttl_seconds": {
+    "type": "int",
+    "description": "相同查询结果缓存时间（秒）",
+    "hint": "默认 60；填 0 关闭缓存。缓存命中不消耗模型调用，也不计入频率限制。",
+    "default": 300
+  },
+  "rate_limit_per_minute": {
+    "type": "int",
+    "description": "每个会话每分钟最多搜索次数",
+    "hint": "默认 6；填 0 关闭限制。只统计真正发出的模型调用，缓存命中不计。",
+    "default": 6
+  },
+  "max_calls_per_turn": {
+    "type": "int",
+    "description": "同一轮消息最多真实搜索次数",
+    "hint": "默认 2，0 表示不限制。达到上限后工具直接返回已有结果并提示模型直接作答，避免一轮多次联网拖慢响应。",
+    "default": 2
+  },
+  "conflict_policy": {
+    "type": "string",
+    "description": "同类搜索工具冲突策略",
+    "options": [
+      "prefer_self",
+      "keep_all",
+      "skip_self"
+    ],
+    "default": "prefer_self",
+    "hint": "prefer_self=本插件工具优先，移除同一请求内其它网页搜索工具；keep_all=全部保留（可能重复检索）；skip_self=发现其它搜索工具时本插件让位、不注入。"
+  },
+  "extra_conflict_tool_names": {
+    "type": "string",
+    "description": "额外视为冲突的工具名",
+    "hint": "逗号分隔。内置已覆盖 web_search_*、anysearch_*、tavily/firecrawl/exa/deepseek 的提取工具与 serpapi 子搜索；只有其它插件用了不在这两类里的工具名时才需要填。",
+    "default": ""
+  },
+  "command_result_chunk_size": {
+    "type": "int",
+    "description": "/msearch 长结果分段长度",
+    "hint": "默认 1200；填 0 表示不分段。仅对 OneBot v11/NapCat（aiocqhttp）生效。",
+    "default": 1200
+  },
+  "chunk_private_command_results": {
+    "type": "bool",
+    "description": "/msearch 私聊长结果自动分段",
+    "hint": "默认开启，规避私聊合并转发失败（send_private_forward_msg、retcode=1200）。",
+    "default": true
+  },
+  "chunk_group_command_results": {
+    "type": "bool",
+    "description": "/msearch 群聊长结果自动分段",
+    "hint": "默认关闭，避免长搜索结果在群里刷屏。",
+    "default": false
+  }
+}

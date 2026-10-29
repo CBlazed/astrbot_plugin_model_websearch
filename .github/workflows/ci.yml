@@ -1,0 +1,28 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # AstrBot 4.29 最低要求 Python 3.10；再带一个 3.12 代表当前主流运行时。
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 校验插件必备文件与版本
+        run: python scripts/build-plugin-zip.py --check
+
+      - name: 离线单测（astrbot.api 用最小 stub 替代，不需要安装 AstrBot）
+        run: python scripts/run-offline-tests.py
+
+      - name: 语法编译检查
+        run: python -m compileall -q main.py client.py tools.py

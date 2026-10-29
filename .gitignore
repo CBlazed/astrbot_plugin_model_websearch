@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 打包与本地临时产物（可重新生成，不提交）
+dist/
+.tmp/
+.tmp-*
+*.log
+
+# 测试/编辑器缓存
+.pytest_cache/
+.mypy_cache/
+.DS_Store
