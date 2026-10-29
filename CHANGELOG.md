@@ -2,6 +2,14 @@
 
 版本号取自 `metadata.yaml` 的 `version`；AstrBot 以该字段展示插件版本，因此发布前先改它再打 tag。
 
+## 0.2.1 — 2026-10-30
+
+### 变更
+
+- CI：`actions/setup-python` 升到 v6，消除 GitHub Actions 的 Node 20 弃用警告（发布流水线不再依赖即将下线的运行时）。
+- README 新增「配套项目」区块，与 model-console 仓库互相链接（联动说明见「与模型控制台（model-console）的联动」）。
+- 插件运行逻辑与 0.2.0 相同；本版本只含仓库工程与文档改动。
+
 ## 0.2.0 — 2026-10-30
 
 ### 新增

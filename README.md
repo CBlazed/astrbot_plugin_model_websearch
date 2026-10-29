@@ -233,13 +233,21 @@ scripts/release-notes.py       从 CHANGELOG 生成发布说明
 
 ```bash
 python scripts/run-offline-tests.py       # 26 项离线单测
-python scripts/build-plugin-zip.py        # 生成 dist/astrbot_plugin_model_websearch-v0.2.0.zip
+python scripts/build-plugin-zip.py        # 生成 dist/astrbot_plugin_model_websearch-v0.2.1.zip
 python scripts/build-plugin-zip.py --check
 ```
 
 CI（`.github/workflows/ci.yml`）在 Python 3.10 / 3.12 上跑同一套测试与打包校验；
 推 `v*` tag 时 `.github/workflows/release.yml` 跑测试 → 校验 tag 与 `metadata.yaml` 版本一致 →
 构建 zip → 创建 GitHub Release（资产含 zip 与 `.sha256.txt`）。发布说明缺失会直接失败。
+
+## 配套项目
+
+- [**astrbot-model-console**](https://github.com/CBlazed/astrbot-model-console) —— AstrBot 模型控制台（Windows 便携版）：
+  在浏览器里集中查看/切换模型绑定与网页搜索设置（启用开关、提供商、内置搜索 API Key、搜索使用模型），
+  改完先预览 → 备份 → 写入，自带「测试 Key」与「测试模型原生搜索」两个真实探测按钮。
+  本插件的 `model_native` 提供商选项、`websearch_native_provider_id`（搜索使用模型）以及插件启停状态检测都是与它配套设计的，
+  详见上文「[与模型控制台（model-console）的联动](#与模型控制台model-console的联动)」。
 
 ## 许可
 

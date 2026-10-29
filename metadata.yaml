@@ -3,7 +3,7 @@ display_name: 模型原生网页搜索
 short_desc: 让网页搜索直接调用当前聊天模型自带的原生联网搜索能力，而不是另配第三方搜索 API。
 desc: 把 AstrBot「AI 能力 → 网页搜索」里的搜索提供商扩展为「跟随当前聊天模型」：当配置为 model_native 时，插件向模型注入一个 web_search_model_native 工具，工具内部通过当前会话聊天模型 provider 的 OpenAI Responses API（tools=[{"type":"web_search"}]）完成检索，返回结构化结果、答案与来源引用。支持固定搜索模型、插件级禁用开关、同名搜索工具冲突处理、结果缓存与频率限制。
 help: 在 AstrBot 配置里把网页搜索提供商设为 model_native 后，模型会自带网页搜索工具；也可以手动用 /msearch 关键词 测试。插件配置里可关闭搜索、固定搜索模型、调整冲突策略/缓存/限流。
-version: v0.2.0
+version: v0.2.1
 author: CBlazed
 repo: https://github.com/CBlazed/astrbot_plugin_model_websearch
 astrbot_version: ">=4.29,<5"
