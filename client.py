@@ -393,7 +393,7 @@ class NativeSearchClient:
             raise SearchError(
                 f"当前聊天模型（provider={provider_id} model={model} type={provider_type}）"
                 "不支持 OpenAI Responses API 的原生网页搜索。"
-                "请切换到支持该能力的模型（如本机 <provider> 的 <model>），"
+                "请切换到支持该能力的模型（如本机 example-provider 的 model-a），"
                 "或在插件配置里把 provider_mode 设为 fixed 并指定支持 Responses API 的 provider_id。"
             )
         return provider_id, provider, model, responses

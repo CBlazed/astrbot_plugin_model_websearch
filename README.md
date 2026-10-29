@@ -12,7 +12,7 @@
 Tavily / DeepSeek / Baidu 等第三方搜索 API。
 
 适用前提：聊天模型 provider 提供 OpenAI **Responses API** 且支持 `web_search` 工具
-（本机 <provider> 的 `<model>` / `<model-3>` / `<model-4>` 已验证可用）。
+（本机 example-provider 的 `model-a` / `model-c` / `model-d` 已验证可用）。
 
 ## 解决什么问题
 
@@ -120,7 +120,7 @@ git clone https://github.com/CBlazed/astrbot_plugin_model_websearch
 
 ```text
 [model_websearch] loaded: disabled=False mode=current fixed_id=- conflict=prefer_self cache_ttl=300 rate=6/min
-[model_websearch] provider=<provider>/<model> model=<model> elapsed=6.6s results=8 queries=2 usage={...}
+[model_websearch] provider=example-provider/model-a model=model-a elapsed=6.6s results=8 queries=2 usage={...}
 ```
 
 ## 工作原理
@@ -171,7 +171,7 @@ git clone https://github.com/CBlazed/astrbot_plugin_model_websearch
 
 - **profile 字段**（控制台「搜索使用模型」写入）：
   `provider_settings.websearch_native_provider_id`，空 = 跟随当前聊天模型；**优先级最高**。
-- **插件配置 fixed**：`provider_mode=fixed` + `provider_id=<provider>/<model-3>`。
+- **插件配置 fixed**：`provider_mode=fixed` + `provider_id=example-provider/model-c`。
 
 注意：不是所有模型都支持 Responses `web_search`。可用 model-console 的
 「测试模型原生搜索」实测；例如 DeepSeek 官方目前仅 `deepseek-v4-pro` 支持，
@@ -190,7 +190,7 @@ git clone https://github.com/CBlazed/astrbot_plugin_model_websearch
 
 ## 安全
 
-- 搜索查询会发送给**当前聊天模型的 provider**（本机部署通常是 `127.0.0.1:<端口>` 反向代理），
+- 搜索查询会发送给**当前聊天模型的 provider**（本机部署通常是 `127.0.0.1:8080` 反向代理），
   不会额外发给第三方搜索服务。
 - 日志只记 provider id、模型名、耗时、token 用量，不记 API Key。
 - 搜索结果文本来自外部网页，对模型来说是不可信输入；本插件不读本地文件/内网地址，也不抓取 URL。
@@ -233,7 +233,7 @@ scripts/release-notes.py       从 CHANGELOG 生成发布说明
 
 ```bash
 python scripts/run-offline-tests.py       # 26 项离线单测
-python scripts/build-plugin-zip.py        # 生成 dist/astrbot_plugin_model_websearch-v0.2.1.zip
+python scripts/build-plugin-zip.py        # 生成 dist/astrbot_plugin_model_websearch-v0.2.2.zip
 python scripts/build-plugin-zip.py --check
 ```
 

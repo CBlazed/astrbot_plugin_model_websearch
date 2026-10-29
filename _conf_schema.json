@@ -18,7 +18,7 @@
   "provider_id": {
     "type": "string",
     "description": "固定搜索模型 Provider ID",
-    "hint": "仅 provider_mode=fixed 时生效，例如 <provider>/<model>。留空在 fixed 模式下会报错；current 模式下本项被忽略。",
+    "hint": "仅 provider_mode=fixed 时生效，例如 example-provider/model-a。留空在 fixed 模式下会报错；current 模式下本项被忽略。",
     "default": ""
   },
   "max_results": {

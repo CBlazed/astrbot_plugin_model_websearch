@@ -37,7 +37,7 @@ PLUGIN_NAME = "astrbot_plugin_model_websearch"
     "CBlazed",
     "让网页搜索直接调用当前聊天模型自带的原生联网搜索能力（Responses API web_search），"
     "支持固定搜索模型、本插件级禁用开关、同类搜索工具冲突处理、结果缓存与频率限制。",
-    "v0.2.1",
+    "v0.2.2",
     "",
 )
 class ModelWebSearchPlugin(Star):

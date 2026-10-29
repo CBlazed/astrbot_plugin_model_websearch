@@ -54,21 +54,21 @@ class FakeClient:
 
 
 class FakeProvider:
-    def __init__(self, response: Any, provider_id: str = "<provider>/<model>") -> None:
+    def __init__(self, response: Any, provider_id: str = "example-provider/model-a") -> None:
         self.provider_config = {
             "id": provider_id,
             "type": "openai_chat_completion",
-            "api_base": "http://127.0.0.1:<端口>/v1",
-            "model": "<model>",
+            "api_base": "http://127.0.0.1:8080/v1",
+            "model": "model-a",
         }
         self.client = FakeClient(response)
 
     def get_model(self) -> str:
-        return "<model>"
+        return "model-a"
 
 
 class NoResponsesProvider:
-    provider_config = {"id": "deepseek/<model>", "type": "openai_chat_completion"}
+    provider_config = {"id": "deepseek/model-a", "type": "openai_chat_completion"}
 
     def get_model(self) -> str:
         return "deepseek-flash"
@@ -131,7 +131,7 @@ class ParseTests(unittest.TestCase):
     def test_parse_structured_json(self) -> None:
         client = NativeSearchClient({})
         response = make_response(GOOD_JSON, ["q1", "q2"], [{"title": "AstrBot 文档", "url": "https://docs.astrbot.app/x"}])
-        outcome = client._parse_response(response, "<provider>/<model>", "<model>", 5)
+        outcome = client._parse_response(response, "example-provider/model-a", "model-a", 5)
         self.assertEqual(len(outcome.results), 2)
         self.assertEqual(outcome.results[0]["title"], "AstrBot 文档")
         self.assertTrue(outcome.results[0]["index"].endswith(".1"))
@@ -216,7 +216,7 @@ class SearchFlowTests(unittest.TestCase):
     def test_fixed_mode_provider_not_found(self) -> None:
         provider = FakeProvider(make_response(GOOD_JSON, ["q"], []))
         context = FakeContext(provider, providers={})
-        client = NativeSearchClient({"provider_mode": "fixed", "provider_id": "<provider>/not-exist", "cache_ttl_seconds": 0})
+        client = NativeSearchClient({"provider_mode": "fixed", "provider_id": "example-provider/not-exist", "cache_ttl_seconds": 0})
 
         async def run() -> None:
             await client.search(context, "umo", "q")
@@ -226,21 +226,21 @@ class SearchFlowTests(unittest.TestCase):
         self.assertIn("不存在", str(ctx.exception))
 
     def test_fixed_mode_uses_configured_provider(self) -> None:
-        fixed_provider = FakeProvider(make_response(GOOD_JSON, ["q"], []), provider_id="<provider>/fixed")
-        context = FakeContext(FakeProvider(make_response(GOOD_JSON, ["q"], [])), providers={"<provider>/fixed": fixed_provider})
-        client = NativeSearchClient({"provider_mode": "fixed", "provider_id": "<provider>/fixed", "cache_ttl_seconds": 0})
+        fixed_provider = FakeProvider(make_response(GOOD_JSON, ["q"], []), provider_id="example-provider/fixed")
+        context = FakeContext(FakeProvider(make_response(GOOD_JSON, ["q"], [])), providers={"example-provider/fixed": fixed_provider})
+        client = NativeSearchClient({"provider_mode": "fixed", "provider_id": "example-provider/fixed", "cache_ttl_seconds": 0})
 
         async def run() -> Any:
             return await client.search(context, "umo", "q")
 
         outcome = asyncio.run(run())
-        self.assertEqual(outcome.provider_id, "<provider>/fixed")
+        self.assertEqual(outcome.provider_id, "example-provider/fixed")
         self.assertEqual(fixed_provider.client.responses.calls, 1)
 
     def test_profile_override_provider_takes_precedence(self) -> None:
-        override_provider = FakeProvider(make_response(GOOD_JSON, ["q"], []), provider_id="<provider>/<model-2>")
+        override_provider = FakeProvider(make_response(GOOD_JSON, ["q"], []), provider_id="example-provider/model-b")
         session_provider = FakeProvider(make_response(GOOD_JSON, ["q"], []))
-        context = FakeContext(session_provider, providers={"<provider>/<model-2>": override_provider})
+        context = FakeContext(session_provider, providers={"example-provider/model-b": override_provider})
         client = NativeSearchClient({"cache_ttl_seconds": 0})
 
         async def run() -> Any:
@@ -248,11 +248,11 @@ class SearchFlowTests(unittest.TestCase):
                 context,
                 "umo",
                 "q",
-                search_provider_id="<provider>/<model-2>",
+                search_provider_id="example-provider/model-b",
             )
 
         outcome = asyncio.run(run())
-        self.assertEqual(outcome.provider_id, "<provider>/<model-2>")
+        self.assertEqual(outcome.provider_id, "example-provider/model-b")
         self.assertEqual(override_provider.client.responses.calls, 1)
         self.assertEqual(session_provider.client.responses.calls, 0)
 
@@ -261,7 +261,7 @@ class SearchFlowTests(unittest.TestCase):
         client = NativeSearchClient({"cache_ttl_seconds": 0})
 
         async def run() -> None:
-            await client.search(context, "umo", "q", search_provider_id="<provider>/nope")
+            await client.search(context, "umo", "q", search_provider_id="example-provider/nope")
 
         with self.assertRaises(SearchError) as ctx:
             asyncio.run(run())
@@ -291,7 +291,7 @@ class SearchFlowTests(unittest.TestCase):
         self.assertEqual(request["tools"], [{"type": "web_search", "search_context_size": "medium"}])
         self.assertEqual(request["max_output_tokens"], 600)
         self.assertFalse(request["store"])
-        self.assertEqual(request["model"], "<model>")
+        self.assertEqual(request["model"], "model-a")
 
     def test_tool_text_is_json(self) -> None:
         response = make_response(GOOD_JSON, ["q"], [])
