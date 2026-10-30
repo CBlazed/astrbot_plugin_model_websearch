@@ -5,6 +5,8 @@
   在 on_llm_request 阶段向本次请求注入 web_search_model_native 工具。
 - 工具内部通过当前会话聊天模型 provider 的 OpenAI Responses API（tools=[{"type":"web_search"}]）
   完成检索，返回 results / answer / queries / sources。
+- Gemini 模型默认走 Gemini 原生 `/v1beta:generateContent` + `google_search`，
+  解析 groundingMetadata 作为搜索证据（失败可按配置回退 Responses + hybrid 指令）。
 - 同时提供 /msearch 手动命令，便于不依赖模型决策的联调与兜底。
 """
 
@@ -35,9 +37,10 @@ PLUGIN_NAME = "astrbot_plugin_model_websearch"
 @register(
     PLUGIN_NAME,
     "CBlazed",
-    "让网页搜索直接调用当前聊天模型自带的原生联网搜索能力（Responses API web_search），"
-    "支持固定搜索模型、本插件级禁用开关、同类搜索工具冲突处理、结果缓存与频率限制。",
-    "v0.2.2",
+    "让网页搜索直接调用当前聊天模型自带的原生联网搜索能力（Responses API web_search；"
+    "Gemini 走原生 /v1beta grounding 后端），支持查询时间上下文注入、来源质量排序、"
+    "可疑结果自动复核、固定搜索模型、本插件级禁用开关、同类搜索工具冲突处理、结果缓存与频率限制。",
+    "v0.2.4",
     "",
 )
 class ModelWebSearchPlugin(Star):
@@ -46,13 +49,22 @@ class ModelWebSearchPlugin(Star):
         self.config: dict[str, Any] = config or {}
         self.client = NativeSearchClient(self.config)
         logger.info(
-            "[model_websearch] loaded: disabled=%s mode=%s fixed_id=%s conflict=%s cache_ttl=%ss rate=%s/min",
+            "[model_websearch] loaded: disabled=%s mode=%s fixed_id=%s conflict=%s cache_ttl=%ss "
+            "rate=%s/min gemini_backend=%s gemini_fallback=%s thinking_budget=%s query_inject=%s strip_site=%s "
+            "retry=%s answer_max=%s",
             self.client.disabled,
             self.client.provider_mode,
             self.client.fixed_provider_id or "-",
             self.client.conflict_policy,
             self.client.cache_ttl_seconds,
             self.client.rate_limit_per_minute,
+            self.client.gemini_search_backend,
+            self.client.gemini_native_fallback_to_responses,
+            self.client.gemini_thinking_budget,
+            self.client.query_context_inject,
+            self.client.strip_site_operator,
+            self.client.suspicious_result_retry,
+            self.client.answer_max_chars,
         )
 
     async def terminate(self) -> None:
@@ -157,7 +169,11 @@ class ModelWebSearchPlugin(Star):
             )
         except SearchError as exc:
             # 失败不计数，允许模型换一次 query 重试。
-            logger.warning("[model_websearch] 搜索失败：%s", exc)
+            logger.warning(
+                "[model_websearch] 搜索失败：%s | debug=%s",
+                exc,
+                getattr(exc, "debug", None) or "-",
+            )
             return f"错误：{exc}"
 
         state.calls += 1
@@ -194,7 +210,11 @@ class ModelWebSearchPlugin(Star):
                 search_provider_id=self._native_search_provider_id(event),
             )
         except SearchError as exc:
-            logger.warning("[model_websearch] /msearch 失败：%s", exc)
+            logger.warning(
+                "[model_websearch] /msearch 失败：%s | debug=%s",
+                exc,
+                getattr(exc, "debug", None) or "-",
+            )
             yield event.plain_result(f"搜索失败：{exc}")
             return
 
@@ -231,6 +251,8 @@ class ModelWebSearchPlugin(Star):
             lines.append("💬 " + outcome.answer)
         if not outcome.results:
             lines.append("（没有可展示的搜索结果，只有模型回答）")
+        if outcome.notice:
+            lines.append("提示：" + outcome.notice)
         return "\n".join(lines)
 
     def _split_for_platform(self, event: AstrMessageEvent, text: str) -> list[str]:

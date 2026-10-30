@@ -1,9 +1,11 @@
 name: astrbot_plugin_model_websearch
 display_name: 模型原生网页搜索
 short_desc: 让网页搜索直接调用当前聊天模型自带的原生联网搜索能力，而不是另配第三方搜索 API。
-desc: 把 AstrBot「AI 能力 → 网页搜索」里的搜索提供商扩展为「跟随当前聊天模型」：当配置为 model_native 时，插件向模型注入一个 web_search_model_native 工具，工具内部通过当前会话聊天模型 provider 的 OpenAI Responses API（tools=[{"type":"web_search"}]）完成检索，返回结构化结果、答案与来源引用。支持固定搜索模型、插件级禁用开关、同名搜索工具冲突处理、结果缓存与频率限制。
-help: 在 AstrBot 配置里把网页搜索提供商设为 model_native 后，模型会自带网页搜索工具；也可以手动用 /msearch 关键词 测试。插件配置里可关闭搜索、固定搜索模型、调整冲突策略/缓存/限流。
-version: v0.2.2
+desc: >-
+  把 AstrBot「AI 能力 → 网页搜索」里的搜索提供商扩展为「跟随当前聊天模型」：当配置为 model_native 时，插件向模型注入一个 web_search_model_native 工具，工具内部通过当前会话聊天模型 provider 的 OpenAI Responses API（tools=[{"type":"web_search"}]）完成检索，返回结构化结果、答案与来源引用。Gemini 模型默认走 Gemini 原生 /v1beta generateContent + google_search，解析 groundingMetadata（webSearchQueries / groundingChunks / groundingSupports）作为搜索证据，失败可按配置回退 Responses。0.2.4 起对发给后端的 query 注入北京时间上下文并剥离 site:、Gemini 原生带 systemInstruction 做日期换算、结果疑似「没有比赛/无赛程」时自动复核 1 次、官方来源优先排序与 vertex 还原 resolved 标记、answer 按句截断。支持固定搜索模型、插件级禁用开关、同名搜索工具冲突处理、结果缓存与频率限制。
+help: >-
+  在 AstrBot 配置里把网页搜索提供商设为 model_native 后，模型会自带网页搜索工具；也可以手动用 /msearch 关键词 测试。Gemini 默认由原生 grounding 后端执行，可在插件配置里切换后端、回退、超时与 vertex 链接还原；还可关闭搜索、固定搜索模型、调整冲突策略/缓存/限流，以及开关北京时间上下文注入、site: 剥离、可疑结果复核与 answer 截断上限。
+version: v0.2.4
 author: CBlazed
 repo: https://github.com/CBlazed/astrbot_plugin_model_websearch
 astrbot_version: ">=4.29,<5"

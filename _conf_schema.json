@@ -55,6 +55,75 @@
     "description": "单次搜索超时（秒）",
     "default": 45
   },
+  "gemini_search_backend": {
+    "type": "string",
+    "description": "Gemini 搜索后端",
+    "options": [
+      "auto",
+      "native",
+      "responses"
+    ],
+    "default": "auto",
+    "hint": "auto=解析出的模型名含 gemini 时走 Gemini 原生 /v1beta grounding（方案 B），其它模型走 Responses；native=强制原生；responses=全部走现有 Responses 路径。"
+  },
+  "gemini_native_fallback_to_responses": {
+    "type": "bool",
+    "description": "Gemini 原生失败时回退 Responses",
+    "default": true,
+    "hint": "开启后，原生调用失败（HTTP 错误/超时/无 groundingMetadata）会对同一 query 回退到 Responses + 混合式指令，仍要求结构化搜索证据；日志标注 backend=responses_fallback。"
+  },
+  "gemini_timeout_seconds": {
+    "type": "int",
+    "description": "Gemini 搜索超时（秒）",
+    "default": 90,
+    "hint": "原生与 fallback 的有效超时。Gemini 实测较慢（argon 可到 53.9s），默认 90；非 Gemini 仍用上面的 timeout_seconds。"
+  },
+  "gemini_thinking_budget": {
+    "type": "int",
+    "description": "Gemini 原生 thinkingBudget",
+    "default": 128,
+    "hint": "仅 Gemini 原生请求使用：>0 时发送 generationConfig.thinkingConfig.thinkingBudget；0=不发送。2026-10-31 实测 128 比默认更快且保持正确率。"
+  },
+  "empty_result_policy": {
+    "type": "string",
+    "description": "搜索执行但零结果时的策略",
+    "options": [
+      "notice",
+      "error"
+    ],
+    "default": "notice",
+    "hint": "notice=正常返回空 results + notice 提示（默认）；error=抛「原生搜索没有返回可用结果」，与 0.2.2 行为一致。"
+  },
+  "vertex_redirect_resolve": {
+    "type": "bool",
+    "description": "还原 vertexaisearch 跳转链接",
+    "default": false,
+    "hint": "开启后把结果/来源里的 vertexaisearch.cloud.google.com 跳转用首跳 302 Location 还原成真实 URL（仅该域名、最多前 5 条、2s/条、并发、拒绝内网地址）；失败保留原链接。会增加每条约 1–2s 延迟。"
+  },
+  "query_context_inject": {
+    "type": "bool",
+    "description": "查询注入北京时间上下文",
+    "default": true,
+    "hint": "开启后在发给搜索后端的 query 前注入「当前北京时间 + 日期 + 星期（UTC+8）」，用于纠正「今天/明天」的时区口径；只影响发给后端的请求，不改变工具返回给主模型的结构。"
+  },
+  "strip_site_operator": {
+    "type": "bool",
+    "description": "剥离查询里的 site: 操作符",
+    "default": true,
+    "hint": "开启后移除 query 里的 site:域名/路径，避免把检索锁死到单一页面（site: 是本次「今天没赛」误答的诱因之一）；用户原话其余部分保留。"
+  },
+  "suspicious_result_retry": {
+    "type": "bool",
+    "description": "可疑「没有比赛/无赛程」结果自动复核",
+    "default": true,
+    "hint": "每次 search 最多内部重试 1 次：结果/answer 出现 no matches/没有比赛/无赛程且没有明确对阵（A vs B）时，用「去 site: + 北京时间前缀 + 简化词」再检索一次；仍无更可靠结果时按 empty_result_policy 返回带 notice 的结果（error 策略下抛错）。重试会写 WARN/INFO 日志。"
+  },
+  "answer_max_chars": {
+    "type": "int",
+    "description": "native answer 截断上限（字符）",
+    "default": 800,
+    "hint": "Gemini 原生 answer 由旧的硬截 500 改为按句截断并以本项为上限（100–4000，默认 800），避免关键句被切断。"
+  },
   "cache_ttl_seconds": {
     "type": "int",
     "description": "相同查询结果缓存时间（秒）",
